@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SmartLearn | AI Tutor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen flex items-center justify-center px-6 py-">
+
+  <div class="w-[100%] min-h-screen bg-white shadow-2xl overflow-hidden">
+    <!-- Project Title -->
+    <div class="text-center py-8 bg-blue-900 text-white">
+      <h1 class="text-4xl font-bold tracking-wide">SmartLearn – AI Tutor for Personalized Learning</h1>
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="flex flex-col md:flex-row">
+
+      <!-- Left: Image -->
+      <div class="md:w-1/2 p-8 flex items-center justify-center bg-gray-100">
+        <img src="static/image/ai tutor.jpeg" alt="AI Tutor Helping Student" class="rounded-2xl w-full h-auto max-h-[400px] object-cover shadow-md">
+      </div>
+
+      <!-- Right: Login/Register -->
+      <div class="md:w-1/2 p-10 flex flex-col justify-center items-center">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Welcome to Your AI Learning Companion</h2>
+        <p class="mb-6 text-gray-600 text-center">Login or Register to begin your personalized study journey.</p>
+        <div class="space-y-4 w-full max-w-xs">
+          <a href="{% url 'login' %}" class="block w-full text-center bg-blue-900 hover:bg-blue-950 text-white py-3 rounded-xl font-semibold transition">
+            Login
+          </a>
+          <a href="{% url 'register' %}" class="block w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-xl font-semibold transition">
+            Register
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

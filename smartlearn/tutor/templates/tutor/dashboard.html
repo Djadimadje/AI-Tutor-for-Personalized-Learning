@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Dashboard – SmartLearn</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body class="min-h-screen bg-gray-100 py-10 px-4 text-gray-800">
+
+  <div class="bg-blue-900 py-8 flex justify-center items-center px-4 sm:px-8 relative">
+    <h2 class="text-3xl font-bold text-center text-white">📊 My Prediction History</h2>
+    <form method="post" action="{% url 'logout' %}" class="absolute top-1/2 right-4 -translate-y-1/2">
+      {% csrf_token %}
+      <button type="submit"
+              class="py-2 px-4 bg-indigo-900 text-white font-semibold rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300 ease-in-out">
+        Logout
+      </button>
+    </form>
+  </div>
+
+  <div class="max-w-6xl mx-auto mt-4 flex justify-center space-x-4">
+    <button id="tableViewBtn"
+            class="py-2 px-6 bg-indigo-900 text-white font-semibold rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300 ease-in-out">
+      Table View
+    </button>
+    <button id="graphViewBtn"
+            class="py-2 px-6 bg-gray-600 text-white font-semibold rounded-xl hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-300 ease-in-out">
+      Graph View
+    </button>
+  </div>
+
+  <!-- Table Container -->
+  <div id="tableContainer" class="overflow-x-auto max-w-6xl mx-auto mt-4">
+    <table class="w-full table-auto border-collapse shadow-lg bg-white rounded-xl overflow-hidden">
+      <thead>
+        <tr class="bg-blue-900 text-white">
+          <th class="py-3 px-4 text-left">Date</th>
+          <th class="py-3 px-4 text-left">Subject</th>
+          <th class="py-3 px-4 text-left">Score</th>
+          <th class="py-3 px-4 text-left">Difficulty</th>
+          <th class="py-3 px-4 text-left">Recommendation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in predictions %}
+        <tr class="border-t hover:bg-blue-50">
+          <td class="py-2 px-4">{{ p.date|date:"Y-m-d H:i" }}</td>
+          <td class="py-2 px-4">{{ p.subject }}</td>
+          <td class="py-2 px-4">{{ p.score }}</td>
+          <td class="py-2 px-4">{{ p.difficulty }}</td>
+          <td class="py-2 px-4 font-semibold text-blue-700">{{ p.recommendation }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="py-6 px-4 text-center text-gray-500">No predictions made yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Graph Container -->
+  <div id="graphContainer" class="max-w-6xl mx-auto mt-4 hidden">
+    {% if predictions %}
+    <canvas id="predictionChart" class="bg-white rounded-xl shadow-lg p-4" width="400" height="300"></canvas>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-lg p-4 text-center text-gray-500">No predictions made yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- Make a New Prediction Button -->
+  <div class="text-center mt-8">
+    <a href="{% url 'predict' %}" class="inline-block bg-blue-900 hover:bg-blue-950 text-white py-2 px-6 rounded-full shadow transition">
+      ➕ Make a New Prediction
+    </a>
+  </div>
+
+  <!-- JavaScript for Toggling Views and Chart -->
+  <script>
+
+    let predictions;
+    try {
+      predictions = JSON.parse({{ predictions_json|safe }});
+      console.log('Predictions data:', predictions);
+    } catch (e) {
+      console.error('Error parsing predictions_json:', e);
+      predictions = [];
+    }
+
+
+    const isValidPrediction = p => p && typeof p.subject === 'string' && typeof p.score === 'number' && typeof p.difficulty === 'string';
+    const validPredictions = predictions.filter(isValidPrediction);
+    console.log('Valid predictions:', validPredictions);
+
+
+    const tableContainer = document.getElementById('tableContainer');
+    const graphContainer = document.getElementById('graphContainer');
+    const tableViewBtn = document.getElementById('tableViewBtn');
+    const graphViewBtn = document.getElementById('graphViewBtn');
+    let chartInstance = null;
+
+    function initializeChart() {
+      if (validPredictions.length === 0) {
+        console.log('No valid predictions to render chart');
+        return;
+      }
+
+      console.log('Initializing chart');
+      const ctx = document.getElementById('predictionChart');
+      if (!ctx) {
+        console.error('Canvas element not found');
+        return;
+      }
+      const context = ctx.getContext('2d');
+      if (!context) {
+        console.error('Failed to get canvas 2D context');
+        return;
+      }
+
+      const subjects = validPredictions.map(p => p.subject);
+      const scores = validPredictions.map(p => p.score);
+      const difficulties = validPredictions.map(p => p.difficulty);
+
+      console.log('Chart data:', { subjects, scores, difficulties });
+
+      const backgroundColors = difficulties.map(diff => {
+        if (diff === 'Easy') return 'rgba(34, 197, 94, 0.6)'; // Green
+        if (diff === 'Medium') return 'rgba(234, 179, 8, 0.6)'; // Yellow
+        return 'rgba(239, 68, 68, 0.6)'; // Red (Hard)
+      });
+
+      try {
+        chartInstance = new Chart(context, {
+          type: 'bar',
+          data: {
+            labels: subjects,
+            datasets: [{
+              label: 'Score',
+              data: scores,
+              backgroundColor: backgroundColors,
+              borderColor: backgroundColors.map(color => color.replace('0.6', '1')),
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                  display: true,
+                  text: 'Score',
+                  color: '#1E3A8A'
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Subject',
+                  color: '#1E3A8A'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: '#1E3A8A'
+                }
+              }
+            }
+          }
+        });
+        console.log('Chart initialized successfully');
+      } catch (e) {
+        console.error('Error initializing chart:', e);
+      }
+    }
+
+    tableViewBtn.addEventListener('click', () => {
+      console.log('Table View clicked');
+      tableContainer.classList.remove('hidden');
+      graphContainer.classList.add('hidden');
+      tableViewBtn.classList.replace('bg-gray-600', 'bg-indigo-900');
+      tableViewBtn.classList.replace('hover:bg-gray-700', 'hover:bg-indigo-700');
+      graphViewBtn.classList.replace('bg-indigo-900', 'bg-gray-600');
+      graphViewBtn.classList.replace('hover:bg-indigo-700', 'hover:bg-gray-700');
+      if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+    });
+
+    graphViewBtn.addEventListener('click', () => {
+      console.log('Graph View clicked');
+      graphContainer.classList.remove('hidden');
+      tableContainer.classList.add('hidden');
+      graphViewBtn.classList.replace('bg-gray-600', 'bg-indigo-900');
+      graphViewBtn.classList.replace('hover:bg-gray-700', 'hover:bg-indigo-700');
+      tableViewBtn.classList.replace('bg-indigo-900', 'bg-gray-600');
+      tableViewBtn.classList.replace('hover:bg-indigo-700', 'hover:bg-gray-700');
+      if (!chartInstance) {
+        initializeChart();
+      }
+    });
+  </script>
+
+</body>
+</html>
